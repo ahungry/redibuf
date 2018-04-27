@@ -19,11 +19,18 @@
 (in-package #:cl-user)
 
 (defpackage redibuf.lib.stub
-  (:use :cl)
+  (:use :cl :redis)
   (:export
    :echo))
 
 (in-package #:redibuf.lib.stub)
+
+(defun ping ()
+  (with-connection (:host "localhost" :port 6379)
+    (red:set "ding" "dong")
+    (print (red:get "food"))
+    (print (red:get "ding"))
+    (red:ping)))
 
 (defun echo (input)
   input)

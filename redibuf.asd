@@ -30,7 +30,7 @@
   :license "GPLv3"
   :depends-on (#:ahungry-fleece
                #:cl-redis
-               #:cl-protobuf)
+               #:cl-protobufs)
   :serial t
   :components
   (
