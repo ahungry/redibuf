@@ -30,6 +30,11 @@
   :license "GPLv3"
   :depends-on (#:ahungry-fleece
                #:cl-redis
+
+               ;; https://github.com/ahungry/protobuf
+               #:protobuf
+
+               ;; http://quickdocs.org/cl-protobufs/api
                #:cl-protobufs)
   :serial t
   :components

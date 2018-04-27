@@ -19,7 +19,13 @@
 (in-package #:cl-user)
 
 (defpackage redibuf.lib.stub
-  (:use :cl :redis)
+  (:use
+   :cl
+   :redis
+
+   ;; cl-protobufs
+   :protobufs
+   )
   (:export
    :echo))
 
@@ -31,6 +37,9 @@
     (print (red:get "food"))
     (print (red:get "ding"))
     (red:ping)))
+
+(defun pb ()
+  (protobufs:parse-schema-from-file "~/src/lisp/redibuf/person.proto"))
 
 (defun echo (input)
   input)
