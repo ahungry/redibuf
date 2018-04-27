@@ -29,6 +29,7 @@
   :author "Your Name <redibuf@example.com>"
   :license "GPLv3"
   :depends-on (#:ahungry-fleece
+               #:flexi-streams
                #:cl-redis
 
                ;; https://github.com/ahungry/protobuf

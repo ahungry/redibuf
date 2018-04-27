@@ -31,6 +31,14 @@
 
 (in-package #:redibuf.lib.stub)
 
+;; Obj should be a blub-message
+(defun store-obj-on-redis (obj)
+  (with-connection (:host "localhost" :port 6379)
+    (red:set
+     "protobuf"
+     (flexi-streams:octets-to-string    ; string-to-octets to reverse
+      (proto:serialize-object-to-bytes obj 'blub-message)))))
+
 (defun ping ()
   (with-connection (:host "localhost" :port 6379)
     (red:set "ding" "dong")
@@ -48,9 +56,11 @@
   )
 ;; (proto:find-message (proto:find-schema 'blub) 'blub-message)
 ;; (make-instance 'blub-message :blub-field "DOG")
+;; Validation occurs during serialize
 ;; (proto:serialize-object-to-bytes (make-instance 'blub-message :blub-field "DOG") 'blub-message)
 ;; (slot-value obj 'blub-field)
 ;; (with-slots (blub-field) obj (setf blub-field 4))
+;; (describe (deserialize-object 'blub-message (proto:serialize-object-to-bytes obj 'blub-message)))
 
 (defun pb ()
   (protobufs:parse-schema-from-file "~/src/lisp/redibuf/person.proto"))
