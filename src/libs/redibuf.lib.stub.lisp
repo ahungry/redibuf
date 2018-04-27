@@ -62,8 +62,13 @@
 ;; (with-slots (blub-field) obj (setf blub-field 4))
 ;; (describe (deserialize-object 'blub-message (proto:serialize-object-to-bytes obj 'blub-message)))
 
+;; (proto:write-schema (pb) :type :lisp)
 (defun pb ()
-  (protobufs:parse-schema-from-file "~/src/lisp/redibuf/person.proto"))
+  (protobufs:parse-schema-from-file
+   "~/src/lisp/redibuf/person.proto"
+   :name 'person
+   :class 'person-class
+   :conc-name nil))
 
 (defun echo (input)
   input)
