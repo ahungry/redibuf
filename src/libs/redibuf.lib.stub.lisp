@@ -38,6 +38,20 @@
     (print (red:get "ding"))
     (red:ping)))
 
+(defvar *blub*)
+
+(defun schema-time ()
+  (proto:define-schema blub
+      (:package blub_test)
+    (proto:define-message blub-message ()
+      (blub-field :type string)))
+  )
+;; (proto:find-message (proto:find-schema 'blub) 'blub-message)
+;; (make-instance 'blub-message :blub-field "DOG")
+;; (proto:serialize-object-to-bytes (make-instance 'blub-message :blub-field "DOG") 'blub-message)
+;; (slot-value obj 'blub-field)
+;; (with-slots (blub-field) obj (setf blub-field 4))
+
 (defun pb ()
   (protobufs:parse-schema-from-file "~/src/lisp/redibuf/person.proto"))
 
