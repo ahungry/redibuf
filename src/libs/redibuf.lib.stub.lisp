@@ -84,7 +84,13 @@
      until (eq s-exp 'eof)
      do (progn
           (print pos)
-          (print s-exp))))
+          (eval s-exp))))
+
+(defun boot ()
+  "Load all the things."
+  (eval-pb)
+  (loop-over-pb spec)
+  (cl:in-package :redibuf.lib.stub))
 
 (defun echo (input)
   input)
