@@ -69,6 +69,14 @@
    :name 'person
    :class 'person-class
    :conc-name nil))
+;; (proto:find-message (pb) 'tutoriaL::person)
+
+(defvar spec (make-array '(0) :element-type 'base-char
+                         :fill-pointer 0 :adjustable t))
+(defun eval-pb ()
+  (with-output-to-string (s spec)
+    (proto:write-schema (pb) :type :lisp :stream s))
+  )
 
 (defun echo (input)
   input)
