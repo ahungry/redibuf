@@ -78,6 +78,14 @@
     (proto:write-schema (pb) :type :lisp :stream s))
   )
 
+(defun loop-over-pb (spec)
+  "Read/evaluate all the things in a string."
+  (loop for (s-exp pos) = (multiple-value-list (read-from-string spec nil 'eof :start (or pos 0)))
+     until (eq s-exp 'eof)
+     do (progn
+          (print pos)
+          (print s-exp))))
+
 (defun echo (input)
   input)
 
