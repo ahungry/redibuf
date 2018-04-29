@@ -45,7 +45,8 @@
    (:module "libs"
             :pathname "src/libs"
             :components
-            ((:file "redibuf.lib.stub")))
+            ((:file "redibuf.lib.stub")
+             (:file "redibuf.lib.math")))
 
    ;; The main module
    (:module "redibuf"

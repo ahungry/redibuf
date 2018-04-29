@@ -57,10 +57,10 @@
       ;; (proto:serialize-object-to-bytes obj 'blub-message)
       ))))
 
-(defun find-obj-on-redis (key)
-  (with-connection (:host "localhost" :port 6379)
-    (nth-value 0 (proto:deserialize-object-from-bytes
-      'tutorial:person (flexi-streams:string-to-octets (red:get key))))))
+;; (defun find-obj-on-redis (key)
+;;   (with-connection (:host "localhost" :port 6379)
+;;     (nth-value 0 (proto:deserialize-object-from-bytes
+;;       'tutorial:person (flexi-streams:string-to-octets (red:get key))))))
 
 (defun ping ()
   (with-connection (:host "localhost" :port 6379)
@@ -115,17 +115,17 @@
   (loop-over-pb spec)
   (cl:in-package :redibuf.lib.stub))
 
-(defun test-serialization ()
-  (let ((obj (make-instance 'tutorial:person :name "Matt")))
-    (print (slot-value obj 'tutorial:name))
-    (let ((sobj (proto:serialize-object-to-bytes obj 'tutorial:person)))
-      (print sobj)
-      (print (slot-value
-              (proto:deserialize-object-from-bytes 'tutorial:person sobj)
-              'tutorial:name)))))
+;; (defun test-serialization ()
+;;   (let ((obj (make-instance 'tutorial:person :name "Matt")))
+;;     (print (slot-value obj 'tutorial:name))
+;;     (let ((sobj (proto:serialize-object-to-bytes obj 'tutorial:person)))
+;;       (print sobj)
+;;       (print (slot-value
+;;               (proto:deserialize-object-from-bytes 'tutorial:person sobj)
+;;               'tutorial:name)))))
 
-(defmethod person-serialize ((obj tutorial:person))
-  (proto:serialize-object-to-bytes obj 'tutorial:person))
+;; (defmethod person-serialize ((obj tutorial:person))
+;;   (proto:serialize-object-to-bytes obj 'tutorial:person))
 
 ;; (proto:serialize-object-to-bytes (make-instance 'blub-message :blub-field "DOG") 'blub-message)
 (defun echo (input)
