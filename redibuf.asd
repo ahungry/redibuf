@@ -29,6 +29,7 @@
   :author "Your Name <redibuf@example.com>"
   :license "GPLv3"
   :depends-on (#:ahungry-fleece
+               #:bordeaux-threads
                #:flexi-streams
                #:cl-redis
 
