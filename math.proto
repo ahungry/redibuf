@@ -3,6 +3,6 @@ package tutorial;
 
 message Math {
   required int64 base = 1;
-  required int64 factorial = 2;
-  required int64 fibonacci = 3;
+  optional int64 factorial = 2;
+  optional int64 fibonacci = 3;
 }

@@ -33,19 +33,20 @@
 (in-package #:redibuf.lib.math)
 
 (defun schema-parse ()
+  "Load up a cl-protobufs schema file."
   (protobufs:parse-schema-from-file
    "~/src/lisp/redibuf/math.proto"
    :name 'math
    :class 'math
    :conc-name nil))
 
-(defvar schema (make-array '(0) :element-type 'base-char
-                         :fill-pointer 0 :adjustable t))
-
-(defun schema-to-string ()
-  (with-output-to-string (s schema)
-    (proto:write-schema (schema-parse) :type :lisp :stream s))
-  schema)
+(defun schema-to-string (protobuf-schema)
+  "Given a cl-protobufs schema, write it to a string stream."
+  (let ((schema (make-array '(0) :element-type 'base-char
+                            :fill-pointer 0 :adjustable t)))
+    (with-output-to-string (s schema)
+      (proto:write-schema protobuf-schema :type :lisp :stream s))
+    schema))
 
 (defun schema-eval (spec)
   "Read/evaluate all the things in a string."
@@ -57,12 +58,10 @@
 
 (defun schema-boot ()
   "Load all the things."
-  (schema-to-string)
-  (schema-eval schema)
-  (cl:in-package :redibuf.lib.math))
+  (schema-eval (schema-to-string (schema-parse)))
+  (cl:in-package :redibuf.lib.math)
+  (rename-package :tutorial :tutorial '(:nicknames :pbt)))
 
 (schema-boot)
-;; (eval-when (:compile-toplevel :load-toplevel :execute)
-;;   (schema-boot))
 
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
