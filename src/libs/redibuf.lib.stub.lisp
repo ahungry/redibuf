@@ -31,6 +31,21 @@
 
 (in-package #:redibuf.lib.stub)
 
+;; Sample received format (list of strings)
+;; ("message" "foo" "WOOT")
+(defun listen-for-stuff ()
+  (bt:make-thread
+   (lambda ()
+     (with-connection ()
+       (red:subscribe "foo")
+       (loop :for msg := (expect :anything) :do
+            (print msg))))
+   :name "pubsub-listener"))
+
+(defun yell-stuff ()
+  (with-connection ()
+    (red:publish "foo" "test")))
+
 ;; Obj should be a protobuf message
 ;; For nested objects hmset / hmget / hgetall would make sense
 (defun store-obj-on-redis (obj)
