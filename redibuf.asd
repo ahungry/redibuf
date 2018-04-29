@@ -33,7 +33,7 @@
                #:cl-redis
 
                ;; https://github.com/ahungry/protobuf
-               #:protobuf
+               ;; #:protobuf
 
                ;; http://quickdocs.org/cl-protobufs/api
                #:cl-protobufs)
