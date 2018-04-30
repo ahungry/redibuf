@@ -132,6 +132,7 @@
                   (push (format nil "Key: ~a" key) llog)
                   (math-factorial obj)  ; Compute the factorial.
                   (store-obj-on-redis key obj)
+                  (with-connection () (red:publish "calcs-done" "done"))
                   ))
               ))))
    :name "sub-factorial"))
@@ -147,6 +148,10 @@
     (store-obj-on-redis id obj)
     (publisher-factorial id)
     ;; Need a *slight* delay before we get it again - maybe another pub/sub?
+    (with-connection ()
+      (red:subscribe "calcs-done")
+      (loop :for msg := (expect :anything)
+         :until (equal (caddr msg) "done"))) ; Pause until we get a ping back.
     (find-obj-on-redis id)))
 
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
