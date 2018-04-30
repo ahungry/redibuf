@@ -27,18 +27,40 @@
    :protobufs
    )
   (:export
-   :math
+   ;; :math
    ))
 
 (in-package #:redibuf.lib.math)
+
+;; Generated code from cl-protobufs
+(cl:eval-when (:execute :compile-toplevel :load-toplevel)
+  (cl:unless (cl:find-package "TUTORIAL")
+    (cl:defpackage TUTORIAL (:use))))
+(cl:in-package "TUTORIAL")
+(cl:eval-when (:execute :compile-toplevel :load-toplevel)
+ (cl:export '(MATH
+             BASE
+             FACTORIAL)))
+
+(proto:define-schema math
+    (:package "tutorial"
+     :lisp-package "tutorial")
+  (proto:define-message math
+      (:conc-name ""
+       :source-location (#P"~/src/lisp/redibuf/math.proto" 46 50))
+    ((base 1) :type protobufs:int64)
+    ((factorial 2) :type (common-lisp:or common-lisp:null protobufs:int64))))
+(cl:in-package :redibuf.lib.math)
+;; End generated code from cl-protobufs
 
 (defun schema-parse ()
   "Load up a cl-protobufs schema file."
   (protobufs:parse-schema-from-file
    "~/src/lisp/redibuf/math.proto"
-   :name 'math
-   :class 'math
-   :conc-name nil))
+   ;; :name 'math
+   ;; :class 'math
+   ;; :conc-name nil
+   ))
 
 (defun schema-to-string (protobuf-schema)
   "Given a cl-protobufs schema, write it to a string stream."
@@ -53,7 +75,7 @@
   (loop for (s-exp pos) = (multiple-value-list (read-from-string spec nil 'eof :start (or pos 0)))
      until (eq s-exp 'eof)
      do (progn
-          (print pos)
+          ;; (print pos)
           (eval s-exp))))
 
 (defun schema-boot ()
@@ -62,6 +84,69 @@
   (cl:in-package :redibuf.lib.math)
   (rename-package :tutorial :tutorial '(:nicknames :pbt)))
 
-(schema-boot)
+;; Could dynamically load code here, maybe..
+;; (schema-boot)
+
+(defun factorial (n)
+  (cond ((< n 1) 1)
+        (t (* n (factorial (1- n))))))
+
+(defmethod math-factorial ((obj tutorial:math))
+  (setf (tutorial:factorial obj) (factorial (tutorial:base obj))))
+
+;; Redis interactions.
+(defun store-obj-on-redis (key obj)
+  (with-connection (:host "localhost" :port 6379)
+    (red:set
+     key
+     (flexi-streams:octets-to-string    ; string-to-octets to reverse
+      (nth-value 1 (proto:serialize obj))
+      ;; (proto:serialize-object-to-bytes obj 'blub-message)
+      ))))
+
+;; (eval-when (:compile-toplevel :load-toplevel :execute) )
+(defun find-obj-on-redis (key)
+  (with-connection (:host "localhost" :port 6379)
+    (nth-value 0 (proto:deserialize-object-from-bytes
+                  'tutorial:math (flexi-streams:string-to-octets (red:get key))))))
+
+;; Listeners and such
+(defvar llog '())
+
+;; ("message" "calcs-needed" "id")
+(defun listener-factorial ()
+  "Listen for a publish that requests a factorial be computed."
+  (bt:make-thread
+   (lambda ()
+     (with-connection ()
+       (red:subscribe "calcs-needed")
+       (loop :for msg := (expect :anything) :do
+            (progn
+              (with-connection ()
+                (let* ((key (caddr msg))
+                       (bytes (red:get key)) ; Stored redis byte string
+                       (vec (flexi-streams:string-to-octets bytes)) ; Make our byte CL vector
+                       (obj (nth-value 0 (proto:deserialize-object-from-bytes ; Deserialize
+                                          'tutorial:math vec))))
+                  ;; Now we have the instantiated object, yay.
+                  (push (format nil "Key: ~a" key) llog)
+                  (math-factorial obj)  ; Compute the factorial.
+                  (store-obj-on-redis key obj)
+                  ))
+              ))))
+   :name "sub-factorial"))
+
+(defun publisher-factorial (key)
+  "Triggers a request for calculations (factorial etc.)."
+  (with-connection ()
+    (red:publish "calcs-needed" key)))
+
+(defun generate-math-object (id base)
+  "Make an object, send to the world to calculate other pieces, recombine and send."
+  (let ((obj (make-instance 'tutorial:math :base base)))
+    (store-obj-on-redis id obj)
+    (publisher-factorial id)
+    ;; Need a *slight* delay before we get it again - maybe another pub/sub?
+    (find-obj-on-redis id)))
 
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
