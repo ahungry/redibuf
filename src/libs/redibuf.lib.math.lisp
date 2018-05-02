@@ -39,17 +39,20 @@
 (cl:in-package "TUTORIAL")
 (cl:eval-when (:execute :compile-toplevel :load-toplevel)
  (cl:export '(MATH
-             BASE
-             FACTORIAL)))
+              BASE
+              FACTORIAL
+              DOUBLED)))
 
 (proto:define-schema math
     (:package "tutorial"
      :lisp-package "tutorial")
   (proto:define-message math
       (:conc-name ""
-       :source-location (#P"~/src/lisp/redibuf/math.proto" 46 50))
+                  :source-location (#P"~/src/lisp/redibuf/math.proto" 46 50))
     ((base 1) :type protobufs:int64)
-    ((factorial 2) :type (common-lisp:or common-lisp:null protobufs:int64))))
+    ((factorial 2) :type (common-lisp:or common-lisp:null protobufs:int64))
+    ((doubled 3) :type (common-lisp:or common-lisp:null protobufs:int64))
+    ))
 (cl:in-package :redibuf.lib.math)
 ;; End generated code from cl-protobufs
 
@@ -91,8 +94,13 @@
   (cond ((< n 1) 1)
         (t (* n (factorial (1- n))))))
 
+(defun doubled (n) (* 2 n))
+
 (defmethod math-factorial ((obj tutorial:math))
   (setf (tutorial:factorial obj) (factorial (tutorial:base obj))))
+
+(defmethod math-doubled ((obj tutorial:math))
+  (setf (tutorial:doubled obj) (doubled (tutorial:base obj))))
 
 ;; Redis interactions.
 (defun store-obj-on-redis (key obj)
@@ -114,12 +122,39 @@
                                   (car (red:lrange key 0 0))
                                   )))))
 
+(defun merge-math-protobufs (obj-list)
+  "Merge a set of Math objects into a single object."
+  (let ((result (car obj-list)))
+    (loop :for obj :in obj-list
+       :do (progn
+             (when (tutorial:factorial obj) (setf (tutorial:factorial result)
+                                                  (tutorial:factorial obj)))
+             (when (tutorial:doubled obj) (setf (tutorial:doubled result)
+                                                (tutorial:doubled obj)))))
+    result))
+
+(defun find-obj-aggregate-on-redis (key)
+  "Aggregate a set of objects from the list of protobufs."
+  (with-connection (:host "localhost" :port 6379)
+    (let ((obj-list (red:lrange key 0 -1)))
+      (merge-math-protobufs
+       (loop :for obj :in obj-list
+          :collect
+            (nth-value 0 (proto:deserialize-object-from-bytes
+                          'tutorial:math
+                          (flexi-streams:string-to-octets obj))))))))
+
+
 ;; Listeners and such
 (defvar llog '())
+
+(defun find-thread (name)
+  (find name (bt:all-threads) :key #'bt:thread-name :test #'string=))
 
 ;; ("message" "calcs-needed" "id")
 (defun listener-factorial ()
   "Listen for a publish that requests a factorial be computed."
+  (when (find-thread "sub-factorial") (bt:destroy-thread (find-thread "sub-factorial")))
   (bt:make-thread
    (lambda ()
      (with-connection ()
@@ -128,10 +163,7 @@
             (progn
               (with-connection ()
                 (let* ((key (caddr msg))
-                       (bytes (car (red:lrange key 0 0))) ; Stored redis byte string
-                       (vec (flexi-streams:string-to-octets bytes)) ; Make our byte CL vector
-                       (obj (nth-value 0 (proto:deserialize-object-from-bytes ; Deserialize
-                                          'tutorial:math vec))))
+                       (obj (find-obj-on-redis key)))
                   ;; Now we have the instantiated object, yay.
                   (push (format nil "Key: ~a" key) llog)
                   (math-factorial obj)  ; Compute the factorial.
@@ -141,6 +173,27 @@
               ))))
    :name "sub-factorial"))
 
+(defun listener-doubled ()
+  "Listen for a publish that requests a doubled be computed."
+  (when (find-thread "sub-doubled") (bt:destroy-thread (find-thread "sub-doubled")))
+  (bt:make-thread
+   (lambda ()
+     (with-connection ()
+       (red:subscribe "calcs-needed")
+       (loop :for msg := (expect :anything) :do
+            (progn
+              (with-connection ()
+                (let* ((key (caddr msg))
+                       (obj (find-obj-on-redis key)))
+                  ;; Now we have the instantiated object, yay.
+                  (push (format nil "Key: ~a" key) llog)
+                  (math-doubled obj)  ; Compute the doubled.
+                  (store-obj-on-redis key obj)
+                  (with-connection () (red:publish "calcs-done" "done"))
+                  ))
+              ))))
+   :name "sub-doubled"))
+
 (defun publisher-factorial (key)
   "Triggers a request for calculations (factorial etc.)."
   (with-connection ()
@@ -148,6 +201,10 @@
 
 (defun generate-math-object (id base)
   "Make an object, send to the world to calculate other pieces, recombine and send."
+  (unless (find-thread "sub-factorial") (listener-factorial))
+  (unless (find-thread "sub-doubled") (listener-doubled))
+
+  (with-connection () (red:del id))
   (let ((obj (make-instance 'tutorial:math :base base)))
     (store-obj-on-redis id obj)
     (publisher-factorial id)
@@ -160,8 +217,8 @@
                                         ; Pause until we get a ping back.
 
     ;; Just wait a tiny moment to test the concurrent method.
-    (sleep 0.01)
+    (sleep 0.05)
 
-    (find-obj-on-redis id)))
+    (find-obj-aggregate-on-redis id)))
 
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
