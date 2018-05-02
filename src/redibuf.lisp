@@ -21,20 +21,22 @@
 (defpackage redibuf
   (:use :cl)
   (:export :main
+           :server
+           :server-restart
            :print-usage))
 
 (in-package #:redibuf)
 
 (defun print-usage ()
   (format t
-   "redibuf v/~a.
+          "redibuf v/~a.
 
 Usage:
 
     $ redibuf [-h, --help] # Print this help
 
 "
-   (asdf:component-version (asdf:find-system :redibuf))))
+          (asdf:component-version (asdf:find-system :redibuf))))
 
 (defun main (&rest argv)
   (unless argv
@@ -46,5 +48,39 @@ Usage:
 
       (cond
         (t (print-usage)))))
+
+(defvar server-log '())
+
+(defun server-response (env)
+  "Get the response."
+  (let ((number (nth-value 0 (parse-integer (subseq (getf env :path-info) 1)))))
+    ;; (format nil "~a" (redibuf.lib.math:generate-math-object number))
+    (redibuf.lib.math:math-to-json
+     (redibuf.lib.math:generate-math-object number))
+    ))
+
+(defun server-restart ()
+  (bt:destroy-thread
+   (find "clack-handler-woo" (bt:all-threads)
+         :key #'bt:thread-name :test #'string=))
+  (server))
+
+(defun server ()
+  (clack:clackup
+   (lambda (env)
+     (let ((response (server-response env)))
+       ;; (declare (ignore env))
+       (push response server-log)
+       (push (length response) server-log)
+       ;; (push env server-log)
+       `(200
+         (
+          :content-length ,(length response)
+          :content-type "application/json"
+          )
+         (,response))))
+   :port 5001
+   :server :woo
+   :use-default-middlewares nil))
 
 ;;; "redibuf" goes here. Hacks and glory await!

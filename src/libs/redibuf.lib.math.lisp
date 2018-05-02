@@ -27,6 +27,8 @@
    :protobufs
    )
   (:export
+   :generate-math-object
+   :math-to-json
    ;; :math
    ))
 
@@ -103,6 +105,13 @@
 
 (defmethod math-doubled ((obj tutorial:math))
   (setf (tutorial:doubled obj) (doubled (tutorial:base obj))))
+
+(defmethod math-to-json ((obj tutorial:math))
+  (format nil "{\"base\": ~a, \"factorial\": ~a, \"doubled\": ~a, \"tripled\": ~a}"
+          (tutorial:base obj)
+          (tutorial:factorial obj)
+          (tutorial:doubled obj)
+          (tutorial:tripled obj)))
 
 ;; Redis interactions.
 (defun store-obj-on-redis (key obj)

@@ -33,6 +33,7 @@
                #:flexi-streams
                #:cl-redis
                #:uuid
+               #:clack
 
                ;; https://github.com/ahungry/protobuf
                ;; #:protobuf
