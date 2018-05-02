@@ -209,15 +209,29 @@
     (store-obj-on-redis id obj)
     (publisher-factorial id)
 
-    ;; Need a *slight* delay before we get it again - maybe another pub/sub?
-    ;; (with-connection ()
-    ;;   (red:subscribe "calcs-done")
-    ;;   (loop :for msg := (expect :anything)
-    ;;      :until (equal (caddr msg) "done")))
-                                        ; Pause until we get a ping back.
+    (let ((populators 2))
+      ;; Fire off a loop that will kill it for ourselves.
+      ;; This ensures we don't sit here all day if a service fails.
+      (bt:make-thread
+       (lambda ()
+         (sleep 0.5)
+         (with-connection ()
+           (dotimes (x populators)
+             (red:publish "calcs-done" "done")))))
+
+      ;; Pause until we get N ping backs.
+      (let ((x 0))
+        (with-connection ()
+          (red:subscribe "calcs-done")
+          (loop
+             :for msg := (expect :anything)
+             :when (equal (caddr msg) "done")
+             :do (progn
+                   (incf x))
+             :until (>= x populators)))))
 
     ;; Just wait a tiny moment to test the concurrent method.
-    (sleep 0.05)
+    ;; (sleep 0.05)
 
     (find-obj-aggregate-on-redis id)))
 
