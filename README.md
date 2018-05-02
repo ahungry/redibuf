@@ -28,7 +28,7 @@ When all services are done, the reassembler takes the N shallow copies
 to build one fully hydrated copy.  This is then served to the
 requester.
 
-![model](https://raw.githubusercontent.com/ahungry/redibuf/master/img/model.png)
+![model](https://raw.githubusercontent.com/ahungry/redibuf/master/model.png)
 
 ## CLI
 Build with `cat build.sh | sh` in the project root.
