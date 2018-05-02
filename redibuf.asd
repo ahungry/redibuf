@@ -32,6 +32,7 @@
                #:bordeaux-threads
                #:flexi-streams
                #:cl-redis
+               #:uuid
 
                ;; https://github.com/ahungry/protobuf
                ;; #:protobuf

@@ -168,7 +168,7 @@
                   (push (format nil "Key: ~a" key) llog)
                   (math-factorial obj)  ; Compute the factorial.
                   (store-obj-on-redis key obj)
-                  (with-connection () (red:publish "calcs-done" "done"))
+                  (with-connection () (red:publish "calcs-done" key))
                   ))
               ))))
    :name "sub-factorial"))
@@ -189,7 +189,7 @@
                   (push (format nil "Key: ~a" key) llog)
                   (math-doubled obj)  ; Compute the doubled.
                   (store-obj-on-redis key obj)
-                  (with-connection () (red:publish "calcs-done" "done"))
+                  (with-connection () (red:publish "calcs-done" key))
                   ))
               ))))
    :name "sub-doubled"))
@@ -199,40 +199,42 @@
   (with-connection ()
     (red:publish "calcs-needed" key)))
 
-(defun generate-math-object (id base)
+(defun generate-math-object (base)
   "Make an object, send to the world to calculate other pieces, recombine and send."
   (unless (find-thread "sub-factorial") (listener-factorial))
   (unless (find-thread "sub-doubled") (listener-doubled))
 
-  (with-connection () (red:del id))
-  (let ((obj (make-instance 'tutorial:math :base base)))
-    (store-obj-on-redis id obj)
-    (publisher-factorial id)
+  (let ((obj (make-instance 'tutorial:math :base base))
+        (populators 2)
+        (key (uuid:make-v4-uuid)))
 
-    (let ((populators 2))
-      ;; Fire off a loop that will kill it for ourselves.
-      ;; This ensures we don't sit here all day if a service fails.
-      (bt:make-thread
-       (lambda ()
-         (sleep 0.5)
-         (with-connection ()
-           (dotimes (x populators)
-             (red:publish "calcs-done" "done")))))
+    (with-connection () (red:del key))
+    (store-obj-on-redis key obj)
+    (publisher-factorial key)
 
-      ;; Pause until we get N ping backs.
-      (let ((x 0))
-        (with-connection ()
-          (red:subscribe "calcs-done")
-          (loop
-             :for msg := (expect :anything)
-             :when (equal (caddr msg) "done")
-             :do (progn
-                   (incf x))
-             :until (>= x populators)))))
+    ;; Fire off a loop that will kill it for ourselves.
+    ;; This ensures we don't sit here all day if a service fails.
+    (bt:make-thread
+     (lambda ()
+       (sleep 0.5)
+       (with-connection ()
+         (dotimes (x populators)
+           (red:publish "calcs-done" "done")))))
+
+    ;; Pause until we get N ping backs.
+    (let ((x 0))
+      (with-connection ()
+        (red:subscribe "calcs-done")
+        (loop
+           :for msg := (expect :anything)
+           :when (equal (caddr msg) "done")
+           :do (progn
+                 (incf x))
+           :until (>= x populators))))
 
     ;; Just wait a tiny moment to test the concurrent method.
     ;; (sleep 0.05)
 
-    (find-obj-aggregate-on-redis id)))
+    (find-obj-aggregate-on-redis key)))
 
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
