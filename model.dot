@@ -1,0 +1,40 @@
+digraph g {
+        label="
+MathMessage { base: int64, factorial: int64, doubled: int64, tripled: int64 }\l
+The object starts with just a base number, then is sent to Redis as a shallow object with nil/undefined values for the related data.\l
+The requester that initially inserted the object sends a Redis PUBLISH request of the Redis LIST key.\l
+Each service is listening on the calcs-needed CHANNEL and makes a copy of the left-most object in the immutable object list on Redis (LRANGE/LPUSH).\l
+As a service computes the value/performs the work, it prepends the new (more filled out) object onto the left side.\l
+When all services are done, the reassembler takes the N shallow copies to build one fully hydrated copy.  This is then served to the requester.
+        "
+        forcelabels=true;
+
+        requester[label="Requester [1]", xlabel="1. Supplies Math.base value."];
+        requesterx[
+                   label="Reassembler [4]",
+                   xlabel="4. Merges the immutable object list into a fully populated object.
+                   Watches for N service responses to know when it should re-assemble\l (built in timeout so if some data is missing, it is fine)."
+                   ];
+        message_queue[
+                      label="Redis (Message Queue/Data Transit) [2]",
+                      xlabel="2. Passes data over the wire via protobufs.\lObject is immutable - each change prepended to list."
+                      ];
+        message_queuex[
+                       label="Redis (Message Queue/Data Transit) [3]",
+                       xlabel="3. Receives notice when each part is appended to the list"
+                       ];
+
+        requester -> message_queue;
+
+        message_queue -> factorial_service;
+        message_queue -> doubler_service;
+        message_queue -> tripler_service;
+
+        factorial_service -> message_queuex;
+        doubler_service -> message_queuex;
+        tripler_service -> message_queuex;
+
+        message_queuex -> requesterx;
+
+        requesterx -> requester;
+}
