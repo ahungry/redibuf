@@ -44,5 +44,13 @@ clean:
 	-rm $(EXE)
 	-rm $(TEXE)
 
+node:
+	cd nodejs; yarn install
+
+start: $(EXE) node
+	node nodejs/index.js >> redibuf.log 2>&1 &
+	./bin/redibuf -l >> redibuf.log 2>&1 &
+	tail -f redibuf.log
+
 .PHONY:
 	all test

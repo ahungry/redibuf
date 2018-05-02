@@ -12,3 +12,4 @@
 /bin/redibuf.core
 /coverage/
 node_modules/
+/redibuf.log

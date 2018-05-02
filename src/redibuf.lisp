@@ -34,22 +34,29 @@
 Usage:
 
     $ redibuf [-h, --help] # Print this help
+    $ redibuf [-l, --listen] # Start the server
 
 "
           (asdf:component-version (asdf:find-system :redibuf))))
+
+(defvar server-log '())
 
 (defun main (&rest argv)
   (unless argv
     (setf argv (cdr sb-ext:*posix-argv*)))
 
-  (if (or (equal (first argv) "-h")
-          (equal (first argv) "--help"))
-      (print-usage)
+  (cond
+    ((or (equal (first argv) "-h")
+         (equal (first argv) "--help"))
+     (print-usage))
 
-      (cond
-        (t (print-usage)))))
+    ((or (equal (first argv) "-l")
+         (equal (first argv) "--listen"))
+     (server)
+     (print "Started server...")
+     (loop :do (progn (sleep 1) (when server-log (print server-log) (setq server-log '())))))
 
-(defvar server-log '())
+    (t (print-usage))))
 
 (defun server-response (env)
   "Get the response."

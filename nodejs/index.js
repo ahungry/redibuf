@@ -6,7 +6,7 @@ const msg_count = 0
 let MathMessage
 
 // Load up the protobuf definition
-protobuf.load('../math.proto', function (err, root) {
+protobuf.load(__dirname + '/../math.proto', function (err, root) {
   if (err)
     throw err
 
