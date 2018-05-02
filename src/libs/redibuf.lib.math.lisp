@@ -97,7 +97,8 @@
 ;; Redis interactions.
 (defun store-obj-on-redis (key obj)
   (with-connection (:host "localhost" :port 6379)
-    (red:set
+    ;; set
+    (red:lpush
      key
      (flexi-streams:octets-to-string    ; string-to-octets to reverse
       (nth-value 1 (proto:serialize obj))
@@ -108,7 +109,10 @@
 (defun find-obj-on-redis (key)
   (with-connection (:host "localhost" :port 6379)
     (nth-value 0 (proto:deserialize-object-from-bytes
-                  'tutorial:math (flexi-streams:string-to-octets (red:get key))))))
+                  'tutorial:math (flexi-streams:string-to-octets
+                                  ;; (red:get key)
+                                  (car (red:lrange key 0 0))
+                                  )))))
 
 ;; Listeners and such
 (defvar llog '())
@@ -124,7 +128,7 @@
             (progn
               (with-connection ()
                 (let* ((key (caddr msg))
-                       (bytes (red:get key)) ; Stored redis byte string
+                       (bytes (car (red:lrange key 0 0))) ; Stored redis byte string
                        (vec (flexi-streams:string-to-octets bytes)) ; Make our byte CL vector
                        (obj (nth-value 0 (proto:deserialize-object-from-bytes ; Deserialize
                                           'tutorial:math vec))))
@@ -147,11 +151,17 @@
   (let ((obj (make-instance 'tutorial:math :base base)))
     (store-obj-on-redis id obj)
     (publisher-factorial id)
+
     ;; Need a *slight* delay before we get it again - maybe another pub/sub?
-    (with-connection ()
-      (red:subscribe "calcs-done")
-      (loop :for msg := (expect :anything)
-         :until (equal (caddr msg) "done"))) ; Pause until we get a ping back.
+    ;; (with-connection ()
+    ;;   (red:subscribe "calcs-done")
+    ;;   (loop :for msg := (expect :anything)
+    ;;      :until (equal (caddr msg) "done")))
+                                        ; Pause until we get a ping back.
+
+    ;; Just wait a tiny moment to test the concurrent method.
+    (sleep 0.01)
+
     (find-obj-on-redis id)))
 
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
