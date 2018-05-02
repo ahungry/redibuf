@@ -219,7 +219,7 @@
        (sleep 0.5)
        (with-connection ()
          (dotimes (x populators)
-           (red:publish "calcs-done" "done")))))
+           (red:publish "calcs-done" key)))))
 
     ;; Pause until we get N ping backs.
     (let ((x 0))
@@ -227,9 +227,10 @@
         (red:subscribe "calcs-done")
         (loop
            :for msg := (expect :anything)
-           :when (equal (caddr msg) "done")
-           :do (progn
-                 (incf x))
+           ;; The first shows up with double quotes unless in format.
+           :when (equal (format nil "~a" (caddr msg))
+                        (format nil "~a" key))
+           :do (incf x)
            :until (>= x populators))))
 
     ;; Just wait a tiny moment to test the concurrent method.
@@ -246,7 +247,7 @@
     (bt:make-thread
      (lambda ()
        (handler-case
-           (push (generate-math-object x) gmo-results)
+           (push (generate-math-object 3) gmo-results)
          (error (err)
            (push err llog))))
      :name "gmo-thread"))
