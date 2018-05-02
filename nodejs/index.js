@@ -1,67 +1,39 @@
-var protobuf = require('protobufjs')
-var redis = require('redis')
-var client = redis.createClient()
-var sub = redis.createClient(), pub = redis.createClient()
-var msg_count = 0
-var MathMessage
+const protobuf = require('protobufjs')
+const redis = require('redis')
+const client = redis.createClient()
+const sub = redis.createClient(), pub = redis.createClient()
+const msg_count = 0
+let MathMessage
 
+// Load up the protobuf definition
 protobuf.load('../math.proto', function (err, root) {
   if (err)
     throw err
 
   // Obtain a message type
   MathMessage = root.lookupType('tutorial.Math')
-
   initRedis()
-  // // Exemplary payload
-  // var payload = { mathField: 'MathString' }
-
-  // // Verify the payload if necessary (i.e. when possibly incomplete or invalid)
-  // var errMsg = MathMessage.verify(payload)
-  // if (errMsg)
-  //   throw Error(errMsg)
-
-  // // Create a new message
-  // var message = MathMessage.create(payload) // or use .fromObject if conversion is necessary
-
-  // // Encode a message to an Uint8Array (browser) or Buffer (node)
-  // var buffer = MathMessage.encode(message).finish()
-  // // ... do something with buffer
-
-  // // Decode an Uint8Array (browser) or Buffer (node) to a message
-  // var message = MathMessage.decode(buffer)
-  // // ... do something with message
-
-  // // If the application uses length-delimited buffers,
-  // // there is also encodeDelimited and decodeDelimited.
-
-  // // Maybe convert the message back to a plain object
-  // var object = MathMessage.toObject(message, {
-  //   longs: String,
-  //   enums: String,
-  //   bytes: String,
-  //   // see ConversionOptions
-  // })
 })
 
-// sub.on('subscribe', function (channel, count) {
-//   pub.publish('a nice channel', 'I am sending a message.')
-//   pub.publish('a nice channel', 'I am sending a second message.')
-//   pub.publish('a nice channel', 'I am sending my last message.')
-// })
-
+// Hook into redis (localhost:6379)
 function initRedis () {
   sub.on('message', function (channel, message) {
     console.log('sub channel ' + channel + ': ' + message)
 
     if (channel === 'calcs-needed') {
       const key = message
+
+      // Always pull the left most list item.
       client.lrange(key, 0, 0, (err, bytes) => {
         const buf = Buffer.from(bytes[0], 'binary')
         const obj = MathMessage.decode(buf)
+        console.log('Received obj: ', obj)
+
+        // At this point, we have a Math object with a base number
+        // Our job is to calculate the 'tripled' value (other system does factorial + doubled)
         const base = obj.base.low
-        const factorial = obj.factorial.low
-        const doubled = obj.doubled.low
+        const factorial = undefined
+        const doubled = undefined
         const tripled = base * 3
         const payload = { base, tripled, factorial, doubled }
         console.log(payload)
