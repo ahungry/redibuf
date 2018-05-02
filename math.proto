@@ -5,4 +5,5 @@ message Math {
   required int64 base = 1;
   optional int64 factorial = 2;
   optional int64 doubled = 3;
+  optional int64 tripled = 4;
 }

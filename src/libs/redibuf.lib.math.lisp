@@ -41,7 +41,8 @@
  (cl:export '(MATH
               BASE
               FACTORIAL
-              DOUBLED)))
+              DOUBLED
+              TRIPLED)))
 
 (proto:define-schema math
     (:package "tutorial"
@@ -52,6 +53,7 @@
     ((base 1) :type protobufs:int64)
     ((factorial 2) :type (common-lisp:or common-lisp:null protobufs:int64))
     ((doubled 3) :type (common-lisp:or common-lisp:null protobufs:int64))
+    ((tripled 4) :type (common-lisp:or common-lisp:null protobufs:int64))
     ))
 (cl:in-package :redibuf.lib.math)
 ;; End generated code from cl-protobufs
@@ -130,7 +132,10 @@
              (when (tutorial:factorial obj) (setf (tutorial:factorial result)
                                                   (tutorial:factorial obj)))
              (when (tutorial:doubled obj) (setf (tutorial:doubled result)
-                                                (tutorial:doubled obj)))))
+                                                (tutorial:doubled obj)))
+             (when (tutorial:tripled obj) (setf (tutorial:tripled result)
+                                                (tutorial:tripled obj)))
+             ))
     result))
 
 (defun find-obj-aggregate-on-redis (key)
@@ -205,7 +210,7 @@
   (unless (find-thread "sub-doubled") (listener-doubled))
 
   (let ((obj (make-instance 'tutorial:math :base base))
-        (populators 2)
+        (populators 3)
         (key (uuid:make-v4-uuid)))
 
     (with-connection () (red:del key))

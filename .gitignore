@@ -11,3 +11,4 @@
 /bin/redibuf-test
 /bin/redibuf.core
 /coverage/
+node_modules/
