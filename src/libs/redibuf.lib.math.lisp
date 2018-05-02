@@ -237,4 +237,23 @@
 
     (find-obj-aggregate-on-redis key)))
 
+(defvar gmo-results '())
+(defun generate-many-objects (n)
+  "Repeatedly generate the objects, re-enter when no threads are left :)"
+  (setf llog '())
+  (setf gmo-results '())
+  (dotimes (x n)
+    (bt:make-thread
+     (lambda ()
+       (handler-case
+           (push (generate-math-object x) gmo-results)
+         (error (err)
+           (push err llog))))
+     :name "gmo-thread"))
+
+  (loop :for threads := (find-thread "gmo-thread")
+     :until (equal threads nil))
+
+  gmo-results)
+
 ;;; "redibuf.lib.math" goes here. Hacks and glory await!
